@@ -5,6 +5,10 @@
 import sys
 from SimpleGraphics import *
 
+# Initalize constants:
+lastColour = [0,0,0]
+colourList = ["000000"]
+
 #
 #  Retrieve the name of the .okti file used for input.
 #
@@ -20,13 +24,11 @@ def fileName():
   # If user provided one command line argument, use that as the file name
   if len(sys.argv) == 2:
     inf = sys.argv[1]
-    print("Using",sys.argv[1],"as the input file...")
     return inf
 
   # If user didn't provide a command line argument, prompt them for file name
   elif len(sys.argv) == 1:
     inf = input("Enter the name of the input file: ")
-    print("Using",inf,"as the input file...")
     return inf
 
   # Else, report there were too many command line arguments, and quit program
@@ -104,46 +106,166 @@ def validateFile(inf):
 def validateTypes(inf):
   # Make a copy of input file
   file = inf
-  pixelCount = 0
 
   # Check if first character in file is a valid pixel type, then trim the first
   # X-many characters from the file, depending on which type is indicated.
   while len(file) > 0:
     if file[0] == "p":
       file = file[7:]
-      pixelCount = pixelCount + 1
       
     elif file[0] == "d":
       file = file[4:]
-      pixelCount = pixelCount + 1
       
     elif file[0] == "R" or file[0] == "I":
       file = file[3:]
-      pixelCount = pixelCount + 1
       
     elif file[0] == "r" or file[0] == "i":
       file = file[2:]
-      pixelCount = pixelCount + 1
       
     else:
       return False
 
-  print(pixelCount)
   return True
+
+
+
+def pixelType(inf, picture, xdim, ydim):
+  x = 0
+  y = 0
+  index = 0
+  while index < len(inf):
+
+    if inf[index] == "p":
+      pixel = inf[index:(index+7)]
+      r = int(pixel[1:3], 16)
+      g = int(pixel[3:5], 16)
+      b = int(pixel[5:], 16)
+
+      prevColours(pixel[1:7])
+      lastColour = [r,g,b]
+      index = index + 7
       
-types = ["p","d","r","R","i","I"]
+      x = x+1
+      if x == xdim:
+        x = 0
+        y = y+1
+
+      putPixel(picture, x, y, r, g, b)
+
+
+    elif inf[index] == "d":
+      pixel = inf[index:(index+4)]
+      r = lastColour[0] + ( int(pixel[1], 16) - 8 )
+      g = lastColour[1] + ( int(pixel[2], 16) - 8 )
+      b = lastColour[2] + ( int(pixel[3], 16) - 8 )
+
+      prevColours("{:02x}".format(r) + "{:02x}".format(g) + "{:02x}".format(b) )
+      lastColour = [r,g,b]
+      index = index + 4
+
+      x = x+1
+      if x == xdim:
+        x = 0
+        y = y+1
+
+      putPixel(picture, x, y, r, g, b)
+
+
+    elif inf[index] == "i":
+      pixel = inf[index:(index+2)]
+      colour = colourList[int(pixel[1], 16)]
+      r = int(colour[0:2], 16)
+      g = int(colour[2:4], 16)
+      b = int(colour[4:], 16)
+
+      prevColours("{:02x}".format(r) + "{:02x}".format(g) + "{:02x}".format(b) )
+      lastColour = [r,g,b]
+      index = index + 2
+      
+      x = x+1
+      if x == xdim:
+        x = 0
+        y = y+1
+
+      putPixel(picture, x, y, r, g, b)
+
+
+    elif inf[index] == "I":
+      pixel = inf[index:(index+3)]
+      colour = colourList[int(pixel[1:], 16)]
+      r = int(colour[0:2], 16)
+      g = int(colour[2:4], 16)
+      b = int(colour[4:], 16)
+
+      prevColours("{:02x}".format(r) + "{:02x}".format(g) + "{:02x}".format(b) )
+      lastColour = [r,g,b]
+      index = index + 3
+      
+      x = x+1
+      if x == xdim:
+        x = 0
+        y = y+1
+
+      putPixel(picture, x, y, r, g, b)
+
+
+    elif inf[index] == "r":
+      pixel = inf[index:(index+2)]
+      r = lastColour[0]
+      g = lastColour[1]
+      b = lastColour[2]
+
+      prevColours("{:02x}".format(r) + "{:02x}".format(g) + "{:02x}".format(b) )
+      span = int(pixel[1], 16)
+      index = index + 2
+
+      for i in range(span):
+        x = x+1
+        if x == xdim:
+          x = 0
+          y = y+1
+
+        putPixel(picture, x, y, r, g, b)
+
+
+    elif inf[index] == "R":
+      pixel = inf[index:(index+3)]
+      r = lastColour[0]
+      g = lastColour[1]
+      b = lastColour[2]
+
+      prevColours("{:02x}".format(r) + "{:02x}".format(g) + "{:02x}".format(b) )
+      span = int(pixel[1:], 16)
+      index = index + 3
+
+      for i in range(span):
+        x = x+1
+        if x == xdim:
+          x = 0
+          y = y+1
+
+        putPixel(picture, x, y, r, g, b)
+
+
+
+
+
+def prevColours(colour):
+  
+  if colour not in colourList:
+    colourList.insert(0, colour)
+  if len(colourList) > 256:
+    colourList.pop()
 
 
 
 def main():
   # Determine name of input file
   inf = fileName()
-  print(inf)
   # Ensure that input file is valid
   inf, xdim, ydim = validateFile(inf)
-  print("inf = ")
-  print(inf)
-  print("xdim =",xdim)
-  print("ydim =",ydim)
+  picture = createImage(xdim, ydim)
+  pixelType(inf, picture, xdim, ydim)
+  drawImage(picture, 0, 0)
 
 main()
